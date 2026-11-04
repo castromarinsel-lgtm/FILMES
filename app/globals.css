@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@layer base {
+  body {
+    background-color: #0b0f19;
+    color: #dfe2f1;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-serif-cinema {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  .font-mono-cinema {
+    font-family: 'Space Grotesk', monospace, sans-serif;
+  }
+}
+
+/* Atmospheric Glow Background */
+.cinema-radial-glow {
+  background: radial-gradient(circle at 50% -10%, rgba(168, 85, 247, 0.16) 0%, rgba(244, 63, 94, 0.08) 35%, transparent 70%);
+}
+
+.cinema-card-glow:hover {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), 0 0 25px -5px rgba(168, 85, 247, 0.28);
+}
+
+.cinema-spotlight {
+  background: radial-gradient(60% 120% at 50% 0%, rgba(221, 183, 255, 0.12) 0%, rgba(244, 63, 94, 0.05) 50%, transparent 100%);
+}
+
+/* Custom scrollbars resembling film perforation tracks */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262a35;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a855f7;
+}
