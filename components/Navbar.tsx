@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Film, Clapperboard, Plus, User, Users, Compass, LogIn, LogOut, Sparkles } from 'lucide-react';
+import { Film, Clapperboard, Plus, User, Users, Compass, LogIn, LogOut, Sparkles, Database } from 'lucide-react';
 import { UserProfile, ActiveView } from '@/types/cinema';
 
 interface NavbarProps {
@@ -12,6 +12,8 @@ interface NavbarProps {
   onOpenAuth: () => void;
   onViewMyProfile: () => void;
   onReturnToLogin?: () => void;
+  onOpenSupabaseConfig?: () => void;
+  isSupabaseConfigured?: boolean;
 }
 
 export default function Navbar({
@@ -22,6 +24,8 @@ export default function Navbar({
   onOpenAuth,
   onViewMyProfile,
   onReturnToLogin,
+  onOpenSupabaseConfig,
+  isSupabaseConfigured,
 }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-[#0b0f19]/85 border-b border-white/[0.08] transition-all">
@@ -92,6 +96,24 @@ export default function Navbar({
 
         {/* Right CTA Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Supabase Config / Status Button */}
+          {onOpenSupabaseConfig && (
+            <button
+              onClick={onOpenSupabaseConfig}
+              title={isSupabaseConfigured ? 'Supabase Conectado' : 'Configurar Conexão do Supabase'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono-cinema transition-all ${
+                isSupabaseConfigured
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
+                  : 'bg-[#1e293b] text-[#ddb7ff] border border-[#a855f7]/30 hover:bg-[#a855f7]/20'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5 text-[#10b981]" />
+              <span className="hidden lg:inline">
+                {isSupabaseConfigured ? 'Supabase Ativo' : 'Supabase'}
+              </span>
+            </button>
+          )}
+
           {/* Cadastrar Filme Button */}
           <button
             onClick={onOpenAddMovie}

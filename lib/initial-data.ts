@@ -2,6 +2,18 @@ import { UserProfile, Movie } from '@/types/cinema';
 
 export const POPULAR_PRESET_MOVIES: Omit<Movie, 'id' | 'addedAt'>[] = [
   {
+    title: 'Sempre ao Seu Lado',
+    director: 'Lasse Hallström',
+    year: 2009,
+    genre: 'Drama / Emoção',
+    rating: 10,
+    posterUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
+    backdropUrl: 'https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?auto=format&fit=crop&w=1600&q=80',
+    personalReview: 'A inesquecível e emocionante história real de amor e fidelidade entre o professor Parker e Hachiko. Uma verdadeira obra-prima sobre lealdade eterna.',
+    formatBadge: '4K HDR',
+    favoriteQuote: 'Eles nos ensinam o significado da lealdade e que você nunca deve esquecer quem ama.',
+  },
+  {
     title: 'Interestelar',
     director: 'Christopher Nolan',
     year: 2014,
@@ -222,6 +234,20 @@ export const INITIAL_USERS: UserProfile[] = [
         addedAt: '2024-02-10',
       },
       {
+        id: 'mov-sempre-ao-seu-lado-bia',
+        title: 'Sempre ao Seu Lado',
+        director: 'Lasse Hallström',
+        year: 2009,
+        genre: 'Drama / Emoção',
+        rating: 10,
+        posterUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
+        backdropUrl: 'https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?auto=format&fit=crop&w=1600&q=80',
+        personalReview: 'A inesquecível história de amor e fidelidade entre o professor Parker e Hachiko. Uma verdadeira obra-prima sobre lealdade eterna.',
+        formatBadge: '4K HDR',
+        favoriteQuote: 'Eles nos ensinam o significado da lealdade e que você nunca deve esquecer quem ama.',
+        addedAt: '2024-03-10',
+      },
+      {
         id: 'mov-6',
         title: 'O Fabuloso Destino de Amélie Poulain',
         director: 'Jean-Pierre Jeunet',
@@ -236,6 +262,18 @@ export const INITIAL_USERS: UserProfile[] = [
       },
     ],
     guestbook: [
+      {
+        id: 'comm-hachi-bia',
+        authorId: 'user-gabriel',
+        authorName: 'Gabriel Sampaio',
+        authorHandle: 'sampa_movies',
+        authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+        authorBadge: 'Diretor Indie',
+        content: '"Sempre ao Seu Lado" me destrói emocionalmente toda vez! A lealdade de Hachiko na estação de trem é uma das coisas mais puras já filmadas.',
+        relatedMovieTitle: 'Sempre ao Seu Lado',
+        createdAt: 'Hoje às 11:45',
+        likesCount: 16,
+      },
       {
         id: 'comm-3',
         authorId: 'user-lucas',
@@ -315,13 +353,27 @@ export const GUEST_USER: UserProfile = {
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
   bannerUrl: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1600&q=80',
   bio: 'Novo membro visitante no CineLumina explorando o acervo da comunidade e catalogando meus filmes do coração.',
-  favoriteGenres: ['Cinema Geral', 'Descobertas', 'Favoritos'],
+  favoriteGenres: ['Drama', 'Cinema Geral', 'Descobertas'],
   location: 'Brasil',
   joinedDate: 'Hoje',
   isGuest: true,
   followersCount: 1,
   followingCount: 3,
   movies: [
+    {
+      id: 'mov-hachi-guest',
+      title: 'Sempre ao Seu Lado',
+      director: 'Lasse Hallström',
+      year: 2009,
+      genre: 'Drama / Emoção',
+      rating: 10,
+      posterUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
+      backdropUrl: 'https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?auto=format&fit=crop&w=1600&q=80',
+      personalReview: 'A inesquecível história de amor e fidelidade entre o professor Parker e Hachiko. Uma verdadeira obra-prima sobre lealdade eterna.',
+      formatBadge: '4K HDR',
+      favoriteQuote: 'Eles nos ensinam o significado da lealdade e que você nunca deve esquecer quem ama.',
+      addedAt: '2024-04-12',
+    },
     {
       id: 'mov-guest-1',
       title: 'Interestelar',
@@ -344,15 +396,16 @@ export const GUEST_USER: UserProfile = {
       authorHandle: 'lucasfilmico',
       authorAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
       authorBadge: 'Boas-vindas!',
-      content: 'Bem-vindo ao CineLumina! Fique à vontade para explorar os perfis e comentar os filmes da galera!',
+      content: 'Bem-vindo ao CineLumina! "Sempre ao Seu Lado" na sua lista é emoção garantida, chorei litros assistindo!',
+      relatedMovieTitle: 'Sempre ao Seu Lado',
       createdAt: 'Agora mesmo',
-      likesCount: 2,
+      likesCount: 5,
     },
   ],
 };
 
-const STORAGE_KEY_USERS = 'cinelumina_users_v1';
-const STORAGE_KEY_CURRENT_USER = 'cinelumina_current_user_v1';
+const STORAGE_KEY_USERS = 'cinelumina_users_v4';
+const STORAGE_KEY_CURRENT_USER = 'cinelumina_current_user_v4';
 
 export function getStoredUsers(): UserProfile[] {
   if (typeof window === 'undefined') return INITIAL_USERS;
@@ -362,7 +415,16 @@ export function getStoredUsers(): UserProfile[] {
       localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(INITIAL_USERS));
       return INITIAL_USERS;
     }
-    return JSON.parse(data);
+    const parsed: UserProfile[] = JSON.parse(data);
+    // Ensure Sempre ao Seu Lado is included in case user had an old cache
+    const hasSempreAoSeuLado = parsed.some((u) =>
+      u.movies.some((m) => m.title.toLowerCase().includes('sempre ao seu lado'))
+    );
+    if (!hasSempreAoSeuLado && parsed.length > 0) {
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(INITIAL_USERS));
+      return INITIAL_USERS;
+    }
+    return parsed;
   } catch (err) {
     console.error('Failed to parse stored users:', err);
     return INITIAL_USERS;

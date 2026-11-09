@@ -1,7 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, Film, Star, Sparkles, Image as ImageIcon, Quote } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import {
+  X,
+  Film,
+  Star,
+  Sparkles,
+  Image as ImageIcon,
+  Quote,
+  Upload,
+  Link as LinkIcon,
+  Trash2,
+  Check,
+  Camera,
+  FolderOpen,
+  RefreshCw,
+  AlertCircle,
+} from 'lucide-react';
 import { Movie } from '@/types/cinema';
 import { POPULAR_PRESET_MOVIES } from '@/lib/initial-data';
 
@@ -33,7 +48,106 @@ export default function MovieFormModal({
     movieToEdit?.formatBadge || '4K HDR'
   );
 
+  // Poster registration options
+  const [posterTab, setPosterTab] = useState<'upload' | 'url' | 'presets'>('upload');
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   if (!isOpen) return null;
+
+  // Process selected image file with canvas optimization
+  const processImageFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Por favor, selecione um arquivo de imagem válido (JPG, PNG ou WebP).');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setUploadError('O arquivo é muito grande. Escolha uma imagem de até 15MB.');
+      return;
+    }
+
+    setUploadError('');
+    setIsProcessingImage(true);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const img = new Image();
+
+      img.onload = () => {
+        // Redimensionar para tamanho otimizado (aspecto padrão cartaz ~800x1200)
+        const maxDimension = 900;
+        let { width, height } = img;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          setPosterUrl(optimizedDataUrl);
+        } else {
+          setPosterUrl(dataUrl);
+        }
+        setIsProcessingImage(false);
+      };
+
+      img.onerror = () => {
+        setPosterUrl(dataUrl);
+        setIsProcessingImage(false);
+      };
+
+      img.src = dataUrl;
+    };
+
+    reader.onerror = () => {
+      setUploadError('Falha ao ler o arquivo de imagem.');
+      setIsProcessingImage(false);
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files[0]) {
+      processImageFile(files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      processImageFile(files[0]);
+    }
+  };
 
   const handleApplyPreset = (preset: typeof POPULAR_PRESET_MOVIES[0]) => {
     setTitle(preset.title);
@@ -58,7 +172,9 @@ export default function MovieFormModal({
         year: Number(year) || 2024,
         genre: genre.trim(),
         rating: Number(rating) || 10,
-        posterUrl: posterUrl.trim() || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80',
+        posterUrl:
+          posterUrl.trim() ||
+          'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80',
         personalReview: personalReview.trim(),
         favoriteQuote: favoriteQuote.trim(),
         formatBadge,
@@ -86,8 +202,8 @@ export default function MovieFormModal({
               </h2>
               <p className="text-xs text-[#94a3b8]">
                 {movieToEdit
-                  ? 'Atualize sua avaliação e impressões sobre esta obra'
-                  : 'Adicione uma obra-prima à sua galeria de cinema pessoal'}
+                  ? 'Atualize seu pôster, nota e impressões cinematográficas'
+                  : 'Cadastre o pôster oficial, diretor, ano e sua resenha pessoal'}
               </p>
             </div>
           </div>
@@ -124,7 +240,7 @@ export default function MovieFormModal({
         )}
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Title & Director */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -225,34 +341,231 @@ export default function MovieFormModal({
             />
           </div>
 
-          {/* Poster Image URL & Preview */}
-          <div>
-            <label className="block text-xs font-mono-cinema text-[#cfc2d6] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-[#ddb7ff]" />
-              URL do Pôster / Imagem do Filme
-            </label>
-            <div className="flex gap-3 items-center">
-              <input
-                type="url"
-                value={posterUrl}
-                onChange={(e) => setPosterUrl(e.target.value)}
-                placeholder="https://..."
-                className="flex-1 px-4 py-2.5 bg-[#0b0f19] border border-white/[0.12] rounded-xl text-white text-sm focus:outline-none focus:border-[#a855f7] transition-all font-mono-cinema text-xs"
-              />
-              {posterUrl && (
-                <div className="w-10 h-14 rounded-lg overflow-hidden border border-white/20 shrink-0 bg-black">
+          {/* ============================================================== */}
+          {/* SEÇÃO PRINCIPAL: OPÇÕES DE CADASTRO DO PÔSTER DO FILME         */}
+          {/* ============================================================== */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#0e1320] border border-[#a855f7]/30 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.08] pb-3">
+              <div>
+                <span className="text-xs font-mono-cinema text-white uppercase font-bold tracking-wider flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-[#f97316]" />
+                  Cartaz / Pôster do Filme *
+                </span>
+                <p className="text-[11px] text-[#94a3b8] mt-0.5">
+                  Envie uma imagem do seu dispositivo, cole uma URL ou selecione um clássico:
+                </p>
+              </div>
+
+              {/* Tabs de Seleção do Pôster */}
+              <div className="inline-flex p-1 bg-[#111827] rounded-xl border border-white/[0.08] text-xs">
+                <button
+                  type="button"
+                  onClick={() => setPosterTab('upload')}
+                  className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                    posterTab === 'upload'
+                      ? 'bg-gradient-to-r from-[#a855f7] to-[#f43f5e] text-white font-semibold shadow-sm'
+                      : 'text-[#94a3b8] hover:text-white'
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPosterTab('url')}
+                  className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                    posterTab === 'url'
+                      ? 'bg-gradient-to-r from-[#a855f7] to-[#f43f5e] text-white font-semibold shadow-sm'
+                      : 'text-[#94a3b8] hover:text-white'
+                  }`}
+                >
+                  <LinkIcon className="w-3.5 h-3.5" />
+                  <span>Link / URL</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPosterTab('presets')}
+                  className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                    posterTab === 'presets'
+                      ? 'bg-gradient-to-r from-[#a855f7] to-[#f43f5e] text-white font-semibold shadow-sm'
+                      : 'text-[#94a3b8] hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Galeria</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Error Message for Poster */}
+            {uploadError && (
+              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-[#ffb4ab] flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{uploadError}</span>
+              </div>
+            )}
+
+            {/* Container com Duas Colunas: Inputs à esquerda e Preview à direita */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+              {/* Coluna 1 e 2: Controles da Aba Ativa */}
+              <div className="md:col-span-2 space-y-3">
+                {/* ABA 1: UPLOAD DE ARQUIVO DO COMPUTADOR OU CELULAR */}
+                {posterTab === 'upload' && (
+                  <div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileInputChange}
+                      accept="image/png, image/jpeg, image/jpg, image/webp"
+                      className="hidden"
+                    />
+
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all flex flex-col items-center justify-center gap-2.5 ${
+                        isDragging
+                          ? 'border-[#f97316] bg-[#f97316]/10 shadow-[0_0_20px_rgba(249,115,22,0.25)]'
+                          : 'border-white/[0.15] hover:border-[#ddb7ff] bg-[#0b0f19]/70 hover:bg-[#111827]'
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-[#1e293b] border border-white/10 flex items-center justify-center text-[#ddb7ff] shadow-md group-hover:scale-110 transition-transform">
+                        {isProcessingImage ? (
+                          <RefreshCw className="w-6 h-6 animate-spin text-[#f97316]" />
+                        ) : (
+                          <FolderOpen className="w-6 h-6" />
+                        )}
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-white">
+                          {isProcessingImage
+                            ? 'Processando imagem...'
+                            : 'Clique para escolher ou arraste a imagem do pôster'}
+                        </p>
+                        <p className="text-[11px] text-[#94a3b8] mt-1">
+                          Suporta arquivos PNG, JPG, JPEG ou WebP (do seu computador ou galeria do celular)
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="mt-1 px-4 py-2 rounded-xl bg-[#1e293b] hover:bg-[#a855f7]/25 text-white text-xs font-medium border border-white/10 transition-colors flex items-center gap-1.5"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-[#f97316]" />
+                        <span>Selecionar Imagem do Dispositivo</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ABA 2: URL DA WEB */}
+                {posterTab === 'url' && (
+                  <div className="space-y-2">
+                    <label className="block text-xs text-[#cfc2d6]">
+                      Cole o link direto da imagem (URL da internet):
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={posterUrl.startsWith('data:') ? '' : posterUrl}
+                        onChange={(e) => setPosterUrl(e.target.value)}
+                        placeholder="https://exemplo.com/poster-do-filme.jpg"
+                        className="flex-1 px-4 py-2.5 bg-[#0b0f19] border border-white/[0.12] rounded-xl text-white text-xs font-mono-cinema focus:outline-none focus:border-[#a855f7] transition-all"
+                      />
+                      {posterUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setPosterUrl('')}
+                          className="px-3 py-2 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-white rounded-xl text-xs transition-colors"
+                        >
+                          Limpar
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#94a3b8]">
+                      Você pode usar imagens do IMDb, TMDB, Letterboxd ou qualquer repositório de imagens.
+                    </p>
+                  </div>
+                )}
+
+                {/* ABA 3: GALERIA DE CLÁSSICOS */}
+                {posterTab === 'presets' && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-[#cfc2d6]">
+                      Ou escolha um pôster icônico pré-selecionado em alta resolução:
+                    </p>
+                    <div className="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1">
+                      {POPULAR_PRESET_MOVIES.map((preset, idx) => {
+                        const isSelected = posterUrl === preset.posterUrl;
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => setPosterUrl(preset.posterUrl)}
+                            className={`group relative aspect-[2/3] rounded-lg overflow-hidden border cursor-pointer transition-all ${
+                              isSelected
+                                ? 'border-[#f97316] ring-2 ring-[#f97316] scale-105'
+                                : 'border-white/10 hover:border-white/40 opacity-70 hover:opacity-100'
+                            }`}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={preset.posterUrl}
+                              alt={preset.title}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors" />
+                            {isSelected && (
+                              <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#f97316] text-white flex items-center justify-center">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </div>
+                            )}
+                            <div className="absolute inset-x-0 bottom-0 p-1 bg-gradient-to-t from-black to-transparent text-[9px] text-white font-medium truncate">
+                              {preset.title}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Coluna 3: Preview do Pôster em Aspecto Cinematográfico 2:3 */}
+              <div className="flex flex-col items-center justify-center">
+                <div className="relative w-28 sm:w-32 aspect-[2/3] rounded-xl overflow-hidden border-2 border-[#ddb7ff]/40 bg-[#0a0e18] shadow-xl group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={posterUrl}
-                    alt="Preview"
+                    src={
+                      posterUrl ||
+                      'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80'
+                    }
+                    alt="Pôster Selecionado"
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
                         'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80';
                     }}
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80" />
+                  <div className="absolute bottom-1.5 inset-x-1.5 text-center">
+                    <span className="text-[9px] font-mono-cinema font-bold text-[#ddb7ff] uppercase tracking-wider bg-black/70 px-1.5 py-0.5 rounded border border-white/15 block truncate">
+                      {title || 'Prévia do Pôster'}
+                    </span>
+                  </div>
                 </div>
-              )}
+
+                <div className="mt-2 text-center">
+                  <span className="text-[10px] font-mono-cinema text-emerald-400 flex items-center justify-center gap-1">
+                    <Check className="w-3 h-3" />
+                    Pôster Ativo
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -266,7 +579,7 @@ export default function MovieFormModal({
               value={personalReview}
               onChange={(e) => setPersonalReview(e.target.value)}
               placeholder="Escreva suas impressões, memórias ao assistir ou por que ele merece estar entre seus favoritos..."
-              className="w-full px-4 py-2.5 bg-[#0b0f19] border border-white/[0.12] rounded-xl text-white text-sm focus:outline-none focus:border-[#a855f7] transition-all leading-relaxed"
+              className="w-full px-4 py-2.5 bg-[#0b0f19] border border-white/[0.12] rounded-xl text-white text-sm focus:outline-none focus:border-[#a855f7] transition-all leading-relaxed resize-none"
             />
           </div>
 
@@ -298,7 +611,7 @@ export default function MovieFormModal({
               type="submit"
               className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#f97316] to-[#fb923c] text-white text-sm font-semibold tracking-wide shadow-[0_0_20px_rgba(249,115,22,0.4)] hover:shadow-[0_0_28px_rgba(249,115,22,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              {movieToEdit ? 'Salvar Alterações' : 'Cadastrar no Meu Perfil'}
+              {movieToEdit ? 'Salvar Alterações do Filme' : 'Cadastrar no Meu Perfil'}
             </button>
           </div>
         </form>

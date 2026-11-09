@@ -38,10 +38,11 @@ export default function FeedView({
   const totalMovies = allCommunityEntries.length;
   const totalComments = allRecentComments.length;
 
-  // Spotlight movie (e.g., Interestelar or first available)
-  const spotlightEntry = allCommunityEntries.find(
-    (e) => e.movie.title === 'Interestelar' || e.movie.rating === 10
-  ) || allCommunityEntries[0];
+  // Spotlight movie (Sempre ao Seu Lado as premier community highlight)
+  const spotlightEntry =
+    allCommunityEntries.find((e) => e.movie.title === 'Sempre ao Seu Lado') ||
+    allCommunityEntries.find((e) => e.movie.title === 'Interestelar' || e.movie.rating === 10) ||
+    allCommunityEntries[0];
 
   return (
     <div className="space-y-10 pb-16">

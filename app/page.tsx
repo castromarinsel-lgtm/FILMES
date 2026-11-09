@@ -9,6 +9,7 @@ import AuthModal from '@/components/AuthModal';
 import MovieFormModal from '@/components/MovieFormModal';
 import DeleteMovieModal from '@/components/DeleteMovieModal';
 import LoginScreen from '@/components/LoginScreen';
+import SupabaseConfigModal from '@/components/SupabaseConfigModal';
 import { UserProfile, Movie, ProfileComment, ActiveView } from '@/types/cinema';
 import {
   INITIAL_USERS,
@@ -18,6 +19,15 @@ import {
   getStoredCurrentUser,
   saveStoredCurrentUser,
 } from '@/lib/initial-data';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import {
+  persistMovieToSupabase,
+  deleteMovieFromSupabase,
+  persistGuestbookCommentToSupabase,
+  deleteGuestbookCommentFromSupabase,
+  fetchAllUsersFromSupabase,
+  logoutFromSupabase,
+} from '@/lib/supabase-service';
 import { Clapperboard, Heart, Sparkles, Film } from 'lucide-react';
 
 export default function Home() {
@@ -32,6 +42,7 @@ export default function Home() {
   // Modals
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isMovieFormOpen, setIsMovieFormOpen] = useState(false);
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [movieToEdit, setMovieToEdit] = useState<Movie | null>(null);
   const [movieToDelete, setMovieToDelete] = useState<Movie | null>(null);
 
@@ -54,6 +65,24 @@ export default function Home() {
       }
     }
   };
+
+  // Sync from Supabase on mount if configured
+  useEffect(() => {
+    let mounted = true;
+    async function syncRemoteData() {
+      if (isSupabaseConfigured()) {
+        const remoteUsers = await fetchAllUsersFromSupabase();
+        if (mounted && remoteUsers && remoteUsers.length > 0) {
+          setUsers(remoteUsers);
+          saveStoredUsers(remoteUsers);
+        }
+      }
+    }
+    syncRemoteData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Enter as guest
   const handleEnterAsGuest = (guestName: string) => {
@@ -125,7 +154,7 @@ export default function Home() {
   };
 
   // Save Movie (Add or Edit)
-  const handleSaveMovie = (
+  const handleSaveMovie = async (
     movieData: Omit<Movie, 'id' | 'addedAt'>,
     editId?: string
   ) => {
@@ -168,10 +197,15 @@ export default function Home() {
     if (selectedProfileUser?.id === currentUser.id) {
       setSelectedProfileUser(updatedUser);
     }
+
+    // Persist to Supabase if configured and user is authenticated
+    if (isSupabaseConfigured() && !currentUser.isGuest) {
+      await persistMovieToSupabase(movieData, currentUser.id, editId);
+    }
   };
 
   // Confirm delete movie
-  const handleConfirmDeleteMovie = (movieId: string) => {
+  const handleConfirmDeleteMovie = async (movieId: string) => {
     const updatedMovies = currentUser.movies.filter((m) => m.id !== movieId);
     const updatedUser = {
       ...currentUser,
@@ -189,10 +223,15 @@ export default function Home() {
       setSelectedProfileUser(updatedUser);
     }
     setMovieToDelete(null);
+
+    // Delete in Supabase if configured
+    if (isSupabaseConfigured() && !currentUser.isGuest) {
+      await deleteMovieFromSupabase(movieId);
+    }
   };
 
   // Add Comment to Profile Guestbook
-  const handleAddComment = (commentData: Omit<ProfileComment, 'id' | 'createdAt'>) => {
+  const handleAddComment = async (commentData: Omit<ProfileComment, 'id' | 'createdAt'>) => {
     if (!selectedProfileUser) return;
 
     const newComment: ProfileComment = {
@@ -213,10 +252,15 @@ export default function Home() {
 
     updateUsers(updatedUsersList);
     setSelectedProfileUser(updatedTargetUser);
+
+    // Persist comment to Supabase
+    if (isSupabaseConfigured()) {
+      await persistGuestbookCommentToSupabase(commentData, selectedProfileUser.id);
+    }
   };
 
   // Delete Comment from Profile Guestbook
-  const handleDeleteComment = (commentId: string) => {
+  const handleDeleteComment = async (commentId: string) => {
     if (!selectedProfileUser) return;
 
     const updatedGuestbook = selectedProfileUser.guestbook.filter(
@@ -233,17 +277,40 @@ export default function Home() {
 
     updateUsers(updatedUsersList);
     setSelectedProfileUser(updatedTargetUser);
+
+    // Delete in Supabase
+    if (isSupabaseConfigured()) {
+      await deleteGuestbookCommentFromSupabase(commentId);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logoutFromSupabase();
+    setIsAuthenticated(false);
   };
 
   // If not yet authenticated, start on the Login & Registration screen
   if (!isAuthenticated) {
     return (
-      <LoginScreen
-        allUsers={users}
-        onEnterAsGuest={handleEnterAsGuest}
-        onLoginUser={handleLoginUser}
-        onRegisterUser={handleRegisterUser}
-      />
+      <>
+        <LoginScreen
+          allUsers={users}
+          onEnterAsGuest={handleEnterAsGuest}
+          onLoginUser={handleLoginUser}
+          onRegisterUser={handleRegisterUser}
+          onOpenSupabaseConfig={() => setIsSupabaseModalOpen(true)}
+        />
+        <SupabaseConfigModal
+          isOpen={isSupabaseModalOpen}
+          onClose={() => setIsSupabaseModalOpen(false)}
+          onCredentialsUpdated={async () => {
+            if (isSupabaseConfigured()) {
+              const remote = await fetchAllUsersFromSupabase();
+              if (remote) updateUsers(remote);
+            }
+          }}
+        />
+      </>
     );
   }
 
@@ -265,7 +332,9 @@ export default function Home() {
         onOpenAddMovie={handleOpenAddMovie}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onViewMyProfile={handleViewMyProfile}
-        onReturnToLogin={() => setIsAuthenticated(false)}
+        onReturnToLogin={handleLogout}
+        onOpenSupabaseConfig={() => setIsSupabaseModalOpen(true)}
+        isSupabaseConfigured={isSupabaseConfigured()}
       />
 
       {/* Main Content Area */}
@@ -327,6 +396,17 @@ export default function Home() {
         onClose={() => setMovieToDelete(null)}
         movie={movieToDelete}
         onConfirmDelete={handleConfirmDeleteMovie}
+      />
+
+      <SupabaseConfigModal
+        isOpen={isSupabaseModalOpen}
+        onClose={() => setIsSupabaseModalOpen(false)}
+        onCredentialsUpdated={async () => {
+          if (isSupabaseConfigured()) {
+            const remote = await fetchAllUsersFromSupabase();
+            if (remote) updateUsers(remote);
+          }
+        }}
       />
 
       {/* Cinematic Footer */}
